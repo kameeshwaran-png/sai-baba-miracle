@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Sai Baba Miracles",
+    "slug": "sai-baba-miracles",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "com.saibabamiracles.app",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#fbfcfa"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saibabamiracles.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#fbfcfa"
+      },
+      "package": "com.saibabamiracles.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-web-browser",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "617c783e-532e-42c3-a26e-827242c4defd"
+      }
+    }
+  }
+}
