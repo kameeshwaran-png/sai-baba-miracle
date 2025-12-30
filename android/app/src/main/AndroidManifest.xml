@@ -25,6 +25,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="com.saibabamiracles.app"/>
+        <data android:scheme="exp+sai-baba-miracles"/>
       </intent-filter>
     </activity>
   </application>

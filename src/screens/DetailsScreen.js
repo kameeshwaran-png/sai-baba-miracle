@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, updateDoc, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, getDocs, addDoc, updateDoc, increment, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import { useTheme } from '../hooks/useTheme';
 
@@ -21,7 +22,7 @@ export default function DetailsScreen({ route, navigation }) {
   const { postId } = route.params;
   const { colors } = useTheme();
   const userId = useSelector((state) => state.auth.user?.uid);
-  const userRole = useSelector((state) => state.auth.userRole);
+  const user = useSelector((state) => state.auth.user);
   
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
@@ -145,7 +146,8 @@ export default function DetailsScreen({ route, navigation }) {
       await addDoc(commentsRef, {
         text: commentText.trim(),
         userId: userId,
-        createdAt: new Date(),
+        userName: user?.displayName || user?.email?.split('@')[0] || 'Anonymous',
+        createdAt: serverTimestamp(),
       });
 
       // Update comment count
@@ -163,30 +165,8 @@ export default function DetailsScreen({ route, navigation }) {
     }
   };
 
-  const handleDeletePost = () => {
-    if (userRole !== 'admin') return;
-
-    Alert.alert(
-      'Delete Post',
-      'Are you sure you want to delete this post?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { deleteDoc } = await import('firebase/firestore');
-              await deleteDoc(doc(db, 'posts', postId));
-              navigation.goBack();
-            } catch (error) {
-              console.error('Error deleting post:', error);
-              Alert.alert('Error', 'Failed to delete post');
-            }
-          },
-        },
-      ]
-    );
+  const handleClose = () => {
+    navigation.goBack();
   };
 
   if (loading) {
@@ -206,113 +186,118 @@ export default function DetailsScreen({ route, navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {/* Admin Delete Button */}
-        {userRole === 'admin' && (
-          <TouchableOpacity
-            style={[styles.deleteButton, { backgroundColor: colors.error }]}
-            onPress={handleDeletePost}
-          >
-            <Ionicons name="trash-outline" size={20} color="#ffffff" />
-            <Text style={styles.deleteButtonText}>Delete Post</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Title */}
-        <Text style={[styles.title, { color: colors.primary }]}>
-          {post.title}
-        </Text>
-
-        {/* Meta Info */}
-        <View style={styles.meta}>
-          <Text style={[styles.metaText, { color: colors.secondary }]}>
-            {post.authorName || 'Anonymous'} • {post.createdAt?.toDate?.().toLocaleDateString() || 'Recently'}
-          </Text>
-        </View>
-
-        {/* Like Count */}
-        <TouchableOpacity
-          style={[styles.likeContainer, { borderColor: colors.border }]}
-          onPress={handleLike}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons
-            name={liked ? 'heart' : 'heart-outline'}
-            size={28}
-            color={liked ? colors.error : colors.secondary}
-          />
-          <Text style={[styles.likeCount, { color: colors.primary }]}>
-            {likeCount} {likeCount === 1 ? 'like' : 'likes'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Content */}
-        <Text style={[styles.content, { color: colors.secondary }]}>
-          {post.content}
-        </Text>
-
-        {/* Comments Section */}
-        <View style={styles.commentsSection}>
-          <Text style={[styles.commentsTitle, { color: colors.primary }]}>
-            Comments ({comments.length})
+          {/* Title */}
+          <Text style={[styles.title, { color: colors.primary }]}>
+            {post.title}
           </Text>
 
-          {comments.map((comment) => (
-            <View
-              key={comment.id}
-              style={[styles.commentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            >
-              <Text style={[styles.commentAuthor, { color: colors.primary }]}>
-                {comment.userName || 'Anonymous'}
-              </Text>
-              <Text style={[styles.commentText, { color: colors.secondary }]}>
-                {comment.text}
-              </Text>
-              <Text style={[styles.commentDate, { color: colors.secondary }]}>
-                {comment.createdAt?.toDate?.().toLocaleDateString() || 'Recently'}
-              </Text>
-            </View>
-          ))}
+          {/* Content */}
+          <Text style={[styles.content, { color: colors.secondary }]}>
+            {post.content}
+          </Text>
 
-          {comments.length === 0 && (
-            <Text style={[styles.noComments, { color: colors.secondary }]}>
-              No comments yet. Be the first to comment!
+          {/* Comments Section */}
+          <View style={styles.commentsSection}>
+            <Text style={[styles.commentsTitle, { color: colors.primary }]}>
+              {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
             </Text>
-          )}
-        </View>
-      </ScrollView>
 
-      {/* Comment Input */}
-      <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <TextInput
-          style={[styles.input, { color: colors.primary, borderColor: colors.border }]}
-          placeholder="Write a comment..."
-          placeholderTextColor={colors.secondary}
-          value={commentText}
-          onChangeText={setCommentText}
-          multiline
-          maxLength={500}
-        />
-        <TouchableOpacity
-          style={[styles.submitButton, { backgroundColor: colors.accent }]}
-          onPress={handleSubmitComment}
-          disabled={!commentText.trim() || submittingComment}
-        >
-          {submittingComment ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Ionicons name="send" size={20} color="#ffffff" />
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+            {comments.map((comment) => (
+              <View
+                key={comment.id}
+                style={styles.commentItem}
+              >
+                <View style={styles.commentHeader}>
+                  <View style={[styles.commentAvatar, { backgroundColor: colors.accent + '20' }]}>
+                    <Text style={[styles.commentAvatarText, { color: colors.accent }]}>
+                      {(comment.userName || 'A')[0].toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.commentContent}>
+                    <Text style={[styles.commentAuthor, { color: colors.primary }]}>
+                      {comment.userName || 'Anonymous'}
+                    </Text>
+                    <Text style={[styles.commentText, { color: colors.secondary }]}>
+                      {comment.text}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            {comments.length === 0 && (
+              <Text style={[styles.noComments, { color: colors.secondary }]}>
+                No comments yet. Be the first to comment!
+              </Text>
+            )}
+          </View>
+
+          {/* Spacer for bottom input */}
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+
+        {/* YouTube-Style Comment Input Overlay */}
+        <View style={styles.commentInputWrapper}>
+          <BlurView
+            intensity={80}
+            tint={colors.background === '#000000' ? 'dark' : 'light'}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <View style={[styles.commentInputContainer, { backgroundColor: colors.surface + 'F0' }]}>
+            <View style={[styles.commentInputBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.commentInput, { color: colors.primary }]}
+                placeholder="Write a comment..."
+                placeholderTextColor={colors.secondary}
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, { backgroundColor: commentText.trim() ? colors.accent : colors.border }]}
+                onPress={handleSubmitComment}
+                disabled={!commentText.trim() || submittingComment}
+                activeOpacity={0.7}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Ionicons name="send" size={20} color="#ffffff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Close Button - Bottom Center */}
+        <View style={styles.closeButtonWrapper}>
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: colors.surface + 'F0' }]}
+            onPress={handleClose}
+            activeOpacity={0.8}
+          >
+            <BlurView
+              intensity={60}
+              tint={colors.background === '#000000' ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <Ionicons name="close" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -320,127 +305,176 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 100,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-    gap: 8,
-  },
-  deleteButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingBottom: 180, // Space for comment input and close button
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    marginBottom: 12,
-    fontFamily: 'System',
-    lineHeight: 36,
-  },
-  meta: {
-    marginBottom: 20,
-  },
-  metaText: {
-    fontSize: 14,
-    fontFamily: 'System',
-  },
-  likeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
     marginBottom: 24,
-    gap: 12,
-  },
-  likeCount: {
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+    lineHeight: 40,
   },
   content: {
     fontSize: 18,
     lineHeight: 28,
     marginBottom: 32,
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
   commentsSection: {
-    marginTop: 20,
+    marginTop: 8,
   },
   commentsTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 16,
-    fontFamily: 'System',
+    marginBottom: 20,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
-  commentCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
+  commentItem: {
+    marginBottom: 20,
   },
-  commentAuthor: {
+  commentHeader: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentAvatarText: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentAuthor: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
   commentText: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 8,
-    fontFamily: 'System',
-  },
-  commentDate: {
-    fontSize: 12,
-    fontFamily: 'System',
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
   noComments: {
     fontSize: 16,
     textAlign: 'center',
-    paddingVertical: 32,
-    fontFamily: 'System',
+    paddingVertical: 40,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    borderTopWidth: 1,
-    alignItems: 'flex-end',
-    gap: 12,
+  bottomSpacer: {
+    height: 20,
   },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 20,
+  commentInputWrapper: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
-    maxHeight: 100,
-    fontFamily: 'System',
   },
-  submitButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  commentInputContainer: {
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  commentInputBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 8,
+  },
+  commentInput: {
+    flex: 1,
+    fontSize: 15,
+    maxHeight: 100,
+    paddingVertical: 8,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+  },
+  sendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  closeButtonWrapper: {
+    position: 'absolute',
+    bottom: 24,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  closeButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   errorText: {
     fontSize: 18,
     textAlign: 'center',
     marginTop: 40,
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
 });
-

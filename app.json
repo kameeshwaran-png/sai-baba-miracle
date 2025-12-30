@@ -24,19 +24,22 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#fbfcfa"
       },
-      "package": "com.saibabamiracles.app"
+      "package": "com.saibabamiracles.app",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-web-browser",
       "expo-font"
     ],
     "extra": {
       "eas": {
-        "projectId": "617c783e-532e-42c3-a26e-827242c4defd"
+        "projectId": "b5842246-36e1-4c88-94c7-8a3bb5b0d22c"
       }
-    }
+    },
+    "owner": "kameeshwaran89"
   }
 }

@@ -7,6 +7,8 @@ import {
   Dimensions,
   Alert,
   Share,
+  Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -15,9 +17,7 @@ import { db } from '../../firebase.config';
 import { useTheme } from '../hooks/useTheme';
 
 const { width } = Dimensions.get('window');
-const CARD_MARGIN = 16;
-const CARD_WIDTH = width - CARD_MARGIN * 2;
-const PREVIEW_HEIGHT = Dimensions.get('window').height * 0.3; // 75% of screen height would be too much, using 30% instead
+const PREVIEW_HEIGHT = Dimensions.get('window').height * 0.3;
 
 export default function FeedCard({ post, onPress, navigation }) {
   const { colors } = useTheme();
@@ -128,6 +128,30 @@ export default function FeedCard({ post, onPress, navigation }) {
         </View>
       )}
 
+      {/* User Profile Section */}
+      <View style={styles.profileSection}>
+        <View style={styles.profileImageContainer}>
+          {post.authorImage ? (
+            <Image
+              source={{ uri: post.authorImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={[styles.profileImagePlaceholder, { backgroundColor: colors.accent + '20' }]}>
+              <Ionicons name="person" size={20} color={colors.accent} />
+            </View>
+          )}
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={[styles.authorName, { color: colors.primary }]}>
+            {post.authorName || 'Anonymous'}
+          </Text>
+          <Text style={[styles.postDate, { color: colors.secondary }]}>
+            {post.createdAt?.toDate?.().toLocaleDateString() || 'Recently'}
+          </Text>
+        </View>
+      </View>
+
       {/* Title */}
       <Text
         style={[styles.title, { color: colors.primary }]}
@@ -149,7 +173,7 @@ export default function FeedCard({ post, onPress, navigation }) {
       </View>
 
       {/* Footer Actions */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={handleLike}
@@ -184,29 +208,23 @@ export default function FeedCard({ post, onPress, navigation }) {
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Post Meta */}
-      <View style={styles.meta}>
-        <Text style={[styles.metaText, { color: colors.secondary }]}>
-          {post.authorName || 'Anonymous'} • {post.createdAt?.toDate?.().toLocaleDateString() || 'Recently'}
-        </Text>
-      </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: CARD_MARGIN,
-    marginVertical: 12,
+    width: '100%',
+    marginVertical: 8,
     padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   adminActions: {
     flexDirection: 'row',
@@ -217,12 +235,57 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
   },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  profileImageContainer: {
+    marginRight: 12,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  profileImagePlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  authorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+  },
+  postDate: {
+    fontSize: 13,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+  },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     marginBottom: 12,
-    fontFamily: 'System',
-    lineHeight: 28,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+    lineHeight: 30,
   },
   contentContainer: {
     marginBottom: 16,
@@ -231,20 +294,27 @@ const styles = StyleSheet.create({
   content: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
   readMore: {
     fontSize: 16,
     fontWeight: '600',
     marginTop: 8,
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
   },
   actionButton: {
     flexDirection: 'row',
@@ -254,14 +324,11 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: '500',
-    fontFamily: 'System',
-  },
-  meta: {
-    marginTop: 12,
-  },
-  metaText: {
-    fontSize: 12,
-    fontFamily: 'System',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
 });
 

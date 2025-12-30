@@ -1,7 +1,7 @@
 export const Colors = {
   light: {
-    background: '#fbfcfa',
-    surface: '#ffffff',
+    background: '#F5F7FA', // Very light gray for screen background
+    surface: '#FFFFFF', // Pure white for cards
     primary: '#1a1a1a',
     secondary: '#666666',
     accent: '#007AFF',
@@ -11,8 +11,8 @@ export const Colors = {
     shadow: 'rgba(0, 0, 0, 0.1)',
   },
   dark: {
-    background: '#000000',
-    surface: '#1c1c1e',
+    background: '#000000', // True black for screen background
+    surface: '#1C1C1E', // Deep charcoal for cards
     primary: '#ffffff',
     secondary: '#98989d',
     accent: '#0A84FF',

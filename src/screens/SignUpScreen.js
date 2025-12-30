@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,14 +10,15 @@ import {
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  signInWithCredential, 
-  GoogleAuthProvider, 
-  FacebookAuthProvider, 
-  OAuthProvider 
+import {
+  signInWithCredential,
+  GoogleAuthProvider,
+  FacebookAuthProvider,
+  OAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
 import { auth, db } from '../../firebase.config';
 import { setUser } from '../store/slices/authSlice';
@@ -26,25 +27,82 @@ import { useTheme } from '../hooks/useTheme';
 // Complete web browser session for OAuth
 WebBrowser.maybeCompleteAuthSession();
 
+// Google OAuth Client IDs
+const GOOGLE_CLIENT_ID = '646552958318-4575892dr8trf7i56tdq7do6fggt3637.apps.googleusercontent.com';
+const IOS_CLIENT_ID = '646552958318-aukbcpnkl451p7vfcfc8g4p85e5f2l3j.apps.googleusercontent.com';
+const ANDROID_CLIENT_ID = '646552958318-5bp7ur8ptjom7vc3mdoq5mc396t20g73.apps.googleusercontent.com';
+
 export default function SignUpScreen({ navigation }) {
   const dispatch = useDispatch();
   const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState(null);
 
+  // Setup Google OAuth request using Google provider hook
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: ANDROID_CLIENT_ID,
+    webClientId: GOOGLE_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,
+    // MUST ADD THESE TWO LINES:
+    useProxy: false,
+    redirectUri: AuthSession.makeRedirectUri({
+      scheme: 'com.saibabamiracles.app',
+      preferLocalhost: false,
+    }),
+  });
+
+  // Helper function to handle authentication response
+  const handleAuthResponse = async (authResponse) => {
+    try {
+     // For native Android, the token is often in authentication.idToken
+      // whereas in proxy mode it's in params.id_token
+      const idToken = authResponse.authentication?.idToken || authResponse.params?.id_token;
+
+      if (!idToken) {
+        console.error('Full Auth Response:', authResponse); // Log to see what was returned
+        throw new Error('No ID token received from Google');
+      }
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+      const user = userCredential.user;
+
+      console.log('Firebase sign-in successful, user:', user.email);
+
+      // Handle user data (create/update user document)
+      await handleUserData(user);
+    } catch (error) {
+      console.error('Error processing auth response:', error);
+      Alert.alert(
+        'Login Error',
+        error.message || 'Failed to sign in with Google. Please try again.'
+      );
+      setLoading(false);
+      setLoadingProvider(null);
+    }
+  };
+
+  // Handle OAuth response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      handleAuthResponse(response);
+    } else if (response?.type === 'error') {
+      console.error('OAuth error:', response.error);
+      setLoading(false);
+      setLoadingProvider(null);
+      Alert.alert(
+        'Login Error',
+        response.error?.message || 'Authentication failed. Please try again.'
+      );
+    } else if (response?.type === 'cancel') {
+      console.log('User cancelled Google sign-in');
+      setLoading(false);
+      setLoadingProvider(null);
+    }
+  }, [response]);
+
   const handleGoogleLogin = async () => {
     try {
-      setLoading(true);
-      setLoadingProvider('google');
-
-      // Get the redirect URI for the current environment
-      const redirectUri = AuthSession.makeRedirectUri({
-        useProxy: true,
-      });
-
-      // Get Google OAuth Client ID from Firebase config
-      const GOOGLE_CLIENT_ID = '646552958318-4575892dr8trf7i56tdq7do6fggt3637.apps.googleusercontent.com';
-      
       if (GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
         Alert.alert(
           'Configuration Required',
@@ -54,88 +112,26 @@ export default function SignUpScreen({ navigation }) {
         return;
       }
 
-      // Create OAuth request using authorization code flow with PKCE
-      // IMPORTANT: The prompt parameter MUST be in extraParams to force account selection
-      const request = new AuthSession.AuthRequest({
-        clientId: GOOGLE_CLIENT_ID,
-        scopes: ['openid', 'profile', 'email'],
-        responseType: AuthSession.ResponseType.Code,
-        redirectUri,
-        extraParams: {
-          // CRITICAL: 'select_account' MUST be included to show account picker
-          // Use space-separated values (not comma-separated)
-          prompt: 'select_account consent',
-          access_type: 'offline',
-        },
-        usePKCE: true,
-      });
-
-      // Google OAuth discovery endpoints
-      const discovery = {
-        authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-        tokenEndpoint: 'https://oauth2.googleapis.com/token',
-        revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-      };
-
-      // Clear any existing browser sessions before opening OAuth
-      // This helps ensure account selection shows
-      try {
-        await WebBrowser.dismissBrowser();
-      } catch (e) {
-        // Ignore if no browser is open
-      }
-
-      // Prompt user for authentication
-      // showInRecents: false is critical - prevents browser from caching the session
-      const result = await request.promptAsync(discovery, {
-        useProxy: true,
-        showInRecents: false, // Prevents browser session caching - forces fresh login
-      });
-
-      if (result.type === 'success') {
-        // Exchange authorization code for tokens using expo-auth-session
-        const { code } = result.params;
-
-        if (!code) {
-          throw new Error('No authorization code received from Google');
-        }
-
-        // Exchange code for tokens (expo-auth-session handles this)
-        const tokenResult = await request.exchangeCodeAsync(
-          {
-            code,
-            redirectUri,
-          },
-          discovery
+      if (!request || !promptAsync) {
+        Alert.alert(
+          'Initialization Error',
+          'OAuth request is not ready. Please try again.'
         );
-
-        if (!tokenResult.idToken) {
-          throw new Error('No ID token received from Google');
-        }
-
-        // Create Firebase credential
-        const credential = GoogleAuthProvider.credential(tokenResult.idToken);
-
-        // Sign in to Firebase with the credential
-        const userCredential = await signInWithCredential(auth, credential);
-        const user = userCredential.user;
-
-        // Handle user data (create/update user document)
-        await handleUserData(user);
-      } else if (result.type === 'cancel') {
-        // User cancelled - no error needed
-        console.log('User cancelled Google sign-in');
-      } else {
-        // Error occurred
-        throw new Error(result.error?.message || 'Authentication failed');
+        return;
       }
+
+      setLoading(true);
+      setLoadingProvider('google');
+
+      console.log('Starting OAuth flow...');
+      await promptAsync();
+      // The response will be handled in the useEffect hook above
     } catch (error) {
       console.error('Google login error:', error);
       Alert.alert(
         'Login Error',
-        error.message || 'Failed to sign in with Google. Please try again.'
+        error.message || 'Failed to start Google sign-in. Please try again.'
       );
-    } finally {
       setLoading(false);
       setLoadingProvider(null);
     }

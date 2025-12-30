@@ -1,8 +1,8 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { TouchableOpacity } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { useTheme } from '../hooks/useTheme';
@@ -13,9 +13,10 @@ import SignUpScreen from '../screens/SignUpScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import DetailsScreen from '../screens/DetailsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import CreatePostScreen from '../screens/CreatePostScreen';
 
 const Stack = createStackNavigator();
-const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
 
 function MainStack() {
   const { colors } = useTheme();
@@ -45,8 +46,31 @@ function MainStack() {
       <Stack.Screen 
         name="Details" 
         component={DetailsScreen}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animationTypeForReplace: 'push',
+          cardStyleInterpolator: ({ current, layouts }) => {
+            return {
+              cardStyle: {
+                transform: [
+                  {
+                    translateY: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.height, 0],
+                    }),
+                  },
+                ],
+              },
+            };
+          },
+        }}
+      />
+      <Stack.Screen 
+        name="CreatePost" 
+        component={CreatePostScreen}
         options={({ navigation }) => ({
-          title: 'Post Details',
+          title: 'Create Post',
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -61,41 +85,69 @@ function MainStack() {
   );
 }
 
-function DrawerNavigator() {
+function TabNavigator() {
   const { colors } = useTheme();
   
   return (
-    <Drawer.Navigator
+    <Tab.Navigator
       screenOptions={{
-        drawerStyle: {
-          backgroundColor: colors.surface,
-        },
-        drawerActiveTintColor: colors.accent,
-        drawerInactiveTintColor: colors.secondary,
         headerShown: false,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.secondary,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          fontFamily: Platform.select({
+            ios: 'System',
+            android: 'Roboto',
+            default: 'sans-serif',
+          }),
+        },
       }}
     >
-      <Drawer.Screen 
+      <Tab.Screen 
         name="Home" 
         component={MainStack}
-        options={{
-          drawerLabel: 'Home',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+        options={({ route }) => {
+          const routeName = getFocusedRouteNameFromRoute(route) ?? 'Dashboard';
+          return {
+            tabBarLabel: 'Home',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons 
+                name={focused ? 'home' : 'home-outline'} 
+                size={size} 
+                color={color} 
+              />
+            ),
+            tabBarStyle: routeName === 'Details' ? { 
+              height: 0,
+              overflow: 'hidden',
+            } : {
+              backgroundColor: colors.surface,
+              borderTopColor: colors.border,
+              borderTopWidth: 1,
+              paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+              paddingTop: 10,
+              height: Platform.OS === 'ios' ? 88 : 60,
+            },
+          };
         }}
       />
-      <Drawer.Screen 
+      <Tab.Screen 
         name="Settings" 
         component={SettingsScreen}
         options={{
-          drawerLabel: 'Settings',
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'settings' : 'settings-outline'} 
+              size={size} 
+              color={color} 
+            />
           ),
         }}
       />
-    </Drawer.Navigator>
+    </Tab.Navigator>
   );
 }
 
@@ -121,7 +173,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <DrawerNavigator /> : <AuthStack />}
+      {isAuthenticated ? <TabNavigator /> : <AuthStack />}
     </NavigationContainer>
   );
 }

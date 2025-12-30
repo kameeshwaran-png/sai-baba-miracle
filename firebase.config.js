@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 // Firebase config
 const firebaseConfig = {
@@ -26,8 +26,11 @@ if (getApps().length === 0) {
 // For Expo Go, this is the recommended approach
 const auth = getAuth(app);
 
-// Initialize Firestore
-const db = getFirestore(app);
+// Initialize Firestore with Long Polling for better Android device compatibility
+// This fixes connection issues on physical Android devices
+const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 
 export { auth, db };
 export default app;
