@@ -3,6 +3,8 @@ import 'react-native-reanimated';
 // CRITICAL: Import reanimatedSetup BEFORE any navigation code
 // This ensures the patch is applied before @react-navigation/drawer loads
 import './src/utils/reanimatedSetup';
+// Initialize i18n
+import './src/i18n/config';
 import React, { useCallback } from 'react';
 import { Provider } from 'react-redux';
 import { StatusBar } from 'expo-status-bar';

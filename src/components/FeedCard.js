@@ -35,7 +35,23 @@ export default function FeedCard({ post, onPress, navigation }) {
     setCommentCount(post.commentCount || 0);
   }, [post, userId]);
 
-  const handleLike = async () => {
+  const handleCardPress = () => {
+    if (onPress) {
+      onPress();
+    } else if (navigation) {
+      navigation.navigate('Details', { postId: post.id });
+    }
+  };
+
+  const handleCommentIconClick = (e) => {
+    e.stopPropagation(); // Prevent card click from firing
+    if (navigation) {
+      navigation.navigate('Details', { postId: post.id, scrollToComments: true });
+    }
+  };
+
+  const handleLike = async (e) => {
+    e?.stopPropagation(); // Prevent card click from firing
     if (!userId) {
       Alert.alert('Login Required', 'Please login to like posts');
       return;
@@ -66,26 +82,22 @@ export default function FeedCard({ post, onPress, navigation }) {
     }
   };
 
-  const handleComment = () => {
-    if (onPress) {
-      onPress();
-    } else if (navigation) {
-      navigation.navigate('Details', { postId: post.id });
-    }
-  };
-
-  const handleShare = async () => {
+  const handleShare = async (e) => {
+    e?.stopPropagation(); // Prevent card click from firing
     try {
+      const deepLink = `com.saibabamiracles.app://post/${post.id}`;
       await Share.share({
-        message: `${post.title}\n\n${post.content.substring(0, 100)}...`,
+        message: `${post.title}\n\n${post.content.substring(0, 100)}...\n\nView full post: ${deepLink}`,
         title: post.title,
+        url: deepLink, // For platforms that support URL
       });
     } catch (error) {
       console.error('Error sharing:', error);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = (e) => {
+    e?.stopPropagation(); // Prevent card click from firing
     Alert.alert(
       'Delete Post',
       'Are you sure you want to delete this post?',
@@ -113,7 +125,7 @@ export default function FeedCard({ post, onPress, navigation }) {
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={handleComment}
+      onPress={handleCardPress}
       activeOpacity={0.7}
     >
       {/* Admin Actions */}
@@ -121,7 +133,7 @@ export default function FeedCard({ post, onPress, navigation }) {
         <View style={styles.adminActions}>
           <TouchableOpacity
             style={[styles.deleteButton, { backgroundColor: colors.error }]}
-            onPress={handleDelete}
+            onPress={(e) => handleDelete(e)}
           >
             <Ionicons name="trash-outline" size={20} color="#ffffff" />
           </TouchableOpacity>
@@ -174,39 +186,45 @@ export default function FeedCard({ post, onPress, navigation }) {
 
       {/* Footer Actions */}
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleLike}
-        >
-          <Ionicons
-            name={liked ? 'heart' : 'heart-outline'}
-            size={22}
-            color={liked ? colors.error : colors.secondary}
-          />
-          <Text style={[styles.actionText, { color: colors.secondary }]}>
-            {likeCount}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.footerSection}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleLike}
+          >
+            <Ionicons
+              name={liked ? 'heart' : 'heart-outline'}
+              size={22}
+              color={liked ? colors.error : colors.secondary}
+            />
+            <Text style={[styles.actionText, { color: colors.secondary }]}>
+              {likeCount}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleComment}
-        >
-          <Ionicons name="chatbubble-outline" size={22} color={colors.secondary} />
-          <Text style={[styles.actionText, { color: colors.secondary }]}>
-            {commentCount}
-          </Text>
-        </TouchableOpacity>
+        <View style={[styles.footerSection, styles.footerSectionCenter]}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleCommentIconClick}
+          >
+            <Ionicons name="chatbubble-outline" size={22} color={colors.secondary} />
+            <Text style={[styles.actionText, { color: colors.secondary }]}>
+              {commentCount}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleShare}
-        >
-          <Ionicons name="share-outline" size={22} color={colors.secondary} />
-          <Text style={[styles.actionText, { color: colors.secondary }]}>
-            Share
-          </Text>
-        </TouchableOpacity>
+        <View style={[styles.footerSection, styles.footerSectionRight]}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleShare}
+          >
+            <Ionicons name="share-outline" size={22} color={colors.secondary} />
+            <Text style={[styles.actionText, { color: colors.secondary }]}>
+              Share
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -312,9 +330,20 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     paddingTop: 16,
+    paddingHorizontal: 20,
     borderTopWidth: 1,
+    width: '100%',
+  },
+  footerSection: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  footerSectionCenter: {
+    alignItems: 'center',
+  },
+  footerSectionRight: {
+    alignItems: 'flex-end',
   },
   actionButton: {
     flexDirection: 'row',

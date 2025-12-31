@@ -13,22 +13,43 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, startAfter, doc, getDoc, where } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import { useTheme } from '../hooks/useTheme';
 import FeedCard from '../components/FeedCard';
 
-const POSTS_PER_PAGE = 10;
+
+const POSTS_PER_PAGE = 15;
 
 export default function DashboardScreen({ navigation }) {
   const { colors } = useTheme();
   const user = useSelector((state) => state.auth.user);
+  const preferredLanguage = useSelector((state) => state.theme.language) || 'en';
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState(null);
   const [hasMore, setHasMore] = useState(true);
+  const [fetchingPreferredLanguage, setFetchingPreferredLanguage] = useState(true); // Track if we're still fetching preferred language posts
+
+  const fetchAuthorInfo = async (postData) => {
+    if (postData.authorId && !postData.authorName) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', postData.authorId));
+        if (userDoc.exists()) {
+          postData.authorName = userDoc.data().displayName || 'Anonymous';
+        }
+      } catch (error) {
+        console.error('Error fetching author:', error);
+      }
+    }
+    // Ensure default values
+    postData.likeCount = postData.likeCount || 0;
+    postData.commentCount = postData.commentCount || 0;
+    postData.likedBy = postData.likedBy || [];
+    return postData;
+  };
 
   const loadPosts = useCallback(async (isRefresh = false) => {
     try {
@@ -39,53 +60,88 @@ export default function DashboardScreen({ navigation }) {
       }
 
       const postsRef = collection(db, 'posts');
+      let shouldFetchPreferred = isRefresh ? true : fetchingPreferredLanguage;
+
+      // Fetch all posts and filter client-side to avoid index requirement
+      // This approach prioritizes preferred language posts while avoiding composite index needs
       const q = query(
         postsRef,
         orderBy('createdAt', 'desc'),
-        limit(POSTS_PER_PAGE)
+        limit(POSTS_PER_PAGE * 3) // Fetch more to filter preferred language posts
       );
 
       const snapshot = await getDocs(q);
-      const postsData = [];
+      const allPostsData = [];
+      const existingPostIds = new Set();
 
+      // Process all fetched posts
       for (const docSnap of snapshot.docs) {
         const postData = { id: docSnap.id, ...docSnap.data() };
-        
-        // Fetch author name if not included
-        if (postData.authorId && !postData.authorName) {
-          try {
-            const userDoc = await getDoc(doc(db, 'users', postData.authorId));
-            if (userDoc.exists()) {
-              postData.authorName = userDoc.data().displayName || 'Anonymous';
-            }
-          } catch (error) {
-            console.error('Error fetching author:', error);
-          }
+        await fetchAuthorInfo(postData);
+        if (!existingPostIds.has(postData.id)) {
+          allPostsData.push(postData);
+          existingPostIds.add(postData.id);
         }
+      }
 
-        // Ensure default values
-        postData.likeCount = postData.likeCount || 0;
-        postData.commentCount = postData.commentCount || 0;
-        postData.likedBy = postData.likedBy || [];
+      let postsData = [];
 
-        postsData.push(postData);
+      // If we should prioritize preferred language, filter and sort
+      if (shouldFetchPreferred && preferredLanguage) {
+        // Separate preferred language posts and others
+        const preferredPosts = allPostsData.filter(p => p.language === preferredLanguage);
+        const otherPosts = allPostsData.filter(p => p.language !== preferredLanguage);
+
+        // Combine: preferred first, then others
+        postsData = [...preferredPosts, ...otherPosts].slice(0, POSTS_PER_PAGE);
+
+        // If we got fewer preferred language posts than requested, switch mode
+        if (preferredPosts.length < POSTS_PER_PAGE) {
+          setFetchingPreferredLanguage(false);
+        } else if (postsData.length === POSTS_PER_PAGE && preferredPosts.length >= POSTS_PER_PAGE) {
+          setFetchingPreferredLanguage(true);
+        } else {
+          setFetchingPreferredLanguage(false);
+        }
+      } else {
+        // Use all posts as-is
+        postsData = allPostsData.slice(0, POSTS_PER_PAGE);
+        setFetchingPreferredLanguage(false);
+      }
+
+      // Set last visible based on the actual posts we're showing
+      if (snapshot.docs.length > 0) {
+        // Find the last visible doc that corresponds to our filtered posts
+        const lastPostId = postsData[postsData.length - 1]?.id;
+        const lastDoc = snapshot.docs.find(doc => doc.id === lastPostId) || snapshot.docs[snapshot.docs.length - 1];
+        setLastVisible(lastDoc || null);
+      } else {
+        setLastVisible(null);
       }
 
       setPosts(postsData);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1] || null);
-      setHasMore(snapshot.docs.length === POSTS_PER_PAGE);
+      setHasMore(snapshot.docs.length >= POSTS_PER_PAGE * 3 && postsData.length === POSTS_PER_PAGE);
     } catch (error) {
       console.error('Error loading posts:', error);
       Alert.alert('Error', 'Failed to load posts. Please try again.');
+      setHasMore(false);
+      setFetchingPreferredLanguage(false);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [preferredLanguage, fetchingPreferredLanguage]);
 
   useEffect(() => {
+    // Reset and reload when preferred language changes
+    setPosts([]);
+    setFetchingPreferredLanguage(true);
+    setLastVisible(null);
+    setHasMore(true);
+    setLoading(true);
     loadPosts();
-  }, [loadPosts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferredLanguage]);
 
   const loadMorePosts = async () => {
     if (!hasMore || loadingMore || !lastVisible) return;
@@ -94,43 +150,68 @@ export default function DashboardScreen({ navigation }) {
       setLoadingMore(true);
 
       const postsRef = collection(db, 'posts');
+      const existingPostIds = new Set(posts.map(p => p.id));
+
+      // Fetch more posts using cursor (no index needed for this query)
       const q = query(
         postsRef,
         orderBy('createdAt', 'desc'),
         startAfter(lastVisible),
-        limit(POSTS_PER_PAGE)
+        limit(POSTS_PER_PAGE * 3) // Fetch more to filter preferred language posts
       );
 
       const snapshot = await getDocs(q);
-      const newPosts = [];
+      const allNewPosts = [];
 
+      // Process all fetched posts
       for (const docSnap of snapshot.docs) {
         const postData = { id: docSnap.id, ...docSnap.data() };
         
-        if (postData.authorId && !postData.authorName) {
-          try {
-            const userDoc = await getDoc(doc(db, 'users', postData.authorId));
-            if (userDoc.exists()) {
-              postData.authorName = userDoc.data().displayName || 'Anonymous';
-            }
-          } catch (error) {
-            console.error('Error fetching author:', error);
-          }
-        }
-
-        // Ensure default values
-        postData.likeCount = postData.likeCount || 0;
-        postData.commentCount = postData.commentCount || 0;
-        postData.likedBy = postData.likedBy || [];
-
-        newPosts.push(postData);
+        // Skip duplicates
+        if (existingPostIds.has(postData.id)) continue;
+        
+        await fetchAuthorInfo(postData);
+        allNewPosts.push(postData);
+        existingPostIds.add(postData.id);
       }
 
-      setPosts([...posts, ...newPosts]);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1] || null);
-      setHasMore(snapshot.docs.length === POSTS_PER_PAGE);
+      let newPosts = [];
+
+      // If we should prioritize preferred language, filter accordingly
+      if (fetchingPreferredLanguage && preferredLanguage) {
+        // Separate preferred language posts and others
+        const preferredPosts = allNewPosts.filter(p => p.language === preferredLanguage);
+        const otherPosts = allNewPosts.filter(p => p.language !== preferredLanguage);
+
+        // Combine: preferred first, then others
+        newPosts = [...preferredPosts, ...otherPosts].slice(0, POSTS_PER_PAGE);
+
+        // If we got fewer preferred language posts, switch mode for next fetch
+        if (preferredPosts.length < POSTS_PER_PAGE) {
+          setFetchingPreferredLanguage(false);
+        }
+      } else {
+        // Use all posts as-is
+        newPosts = allNewPosts.slice(0, POSTS_PER_PAGE);
+      }
+
+      // Update last visible
+      if (snapshot.docs.length > 0) {
+        const lastPostId = newPosts[newPosts.length - 1]?.id;
+        const lastDoc = snapshot.docs.find(doc => doc.id === lastPostId) || snapshot.docs[snapshot.docs.length - 1];
+        setLastVisible(lastDoc || null);
+      } else {
+        setLastVisible(null);
+      }
+
+      if (newPosts.length > 0) {
+        setPosts(prevPosts => [...prevPosts, ...newPosts]);
+      }
+      
+      setHasMore(snapshot.docs.length >= POSTS_PER_PAGE * 3 && newPosts.length === POSTS_PER_PAGE);
     } catch (error) {
       console.error('Error loading more posts:', error);
+      setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
@@ -158,8 +239,18 @@ export default function DashboardScreen({ navigation }) {
               <Ionicons name="person" size={20} color={colors.accent} />
             </View>
           )}
-          <Text style={[styles.headerTitle, { color: colors.primary }]}>
-            Sai Baba
+          <Text style={styles.headerTitleContainer}>
+            {['Sai', 'Baba', 'Miracle'].map((word, index) => (
+              <React.Fragment key={index}>
+                <Text style={[styles.headerTitleFirstChar, { color: '#0d6332' }]}>
+                  {word[0]}
+                </Text>
+                <Text style={[styles.headerTitleRest, { color: colors.primary }]}>
+                  {word.slice(1)}
+                </Text>
+                {index < 2 && ' '}
+              </React.Fragment>
+            ))}
           </Text>
         </View>
         <TouchableOpacity
@@ -220,6 +311,11 @@ export default function DashboardScreen({ navigation }) {
         ListEmptyComponent={renderEmpty}
         onEndReached={loadMorePosts}
         onEndReachedThreshold={0.5}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
+        windowSize={10}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -271,14 +367,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerTitleContainer: {
+    // Text components handle inline layout automatically
+  },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
+    opacity: 0.7,
     fontFamily: Platform.select({
       ios: 'System',
       android: 'Roboto',
       default: 'sans-serif',
     }),
+  },
+  headerTitleFirstChar: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+    textShadowColor: 'rgba(13, 99, 50, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    transform: [{ scaleY: 1.1 }],
+  },
+  headerTitleRest: {
+    fontSize: 20,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    opacity: 0.85,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   createButton: {
     width: 44,
@@ -317,4 +445,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+
 

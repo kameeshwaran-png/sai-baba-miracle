@@ -1,0 +1,33 @@
+{
+  "navigation": {
+    "home": "Home",
+    "book": "Book",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "preferredLanguage": "Preferred Language",
+    "feedback": "Feedback",
+    "signOut": "Sign Out",
+    "logout": "Logout",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "cancel": "Cancel"
+  },
+  "feedback": {
+    "title": "Send Feedback",
+    "placeholder": "Please share your thoughts, suggestions, or report any issues...",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "success": "Thank you for your feedback!",
+    "error": "Failed to submit feedback. Please try again."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}
+

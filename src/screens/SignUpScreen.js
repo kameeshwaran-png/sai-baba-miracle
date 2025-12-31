@@ -7,6 +7,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,7 +35,7 @@ const ANDROID_CLIENT_ID = '646552958318-5bp7ur8ptjom7vc3mdoq5mc396t20g73.apps.go
 
 export default function SignUpScreen({ navigation }) {
   const dispatch = useDispatch();
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const [loading, setLoading] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState(null);
 
@@ -224,10 +225,28 @@ export default function SignUpScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Logo Placeholder */}
+      {/* Logo */}
       <View style={styles.logoContainer}>
-        <Ionicons name="rose" size={80} color={colors.accent} />
-        <Text style={[styles.appTitle, { color: colors.primary }]}>Sai Baba Miracles</Text>
+        <View style={[styles.imageContainer, { backgroundColor: mode === 'dark' ? 'black' : colors.surface, borderColor: colors.border }]}>
+          <Image
+            source={mode === 'dark' ? require('../../assets/logo_gold.png') : require('../../assets/logo_white.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.appTitleContainer}>
+          {['Sai', 'Baba', 'Miracles'].map((word, index) => (
+            <React.Fragment key={index}>
+              <Text style={[styles.appTitleFirstChar, { color: '#25b51d' }]}>
+                {word[0]}
+              </Text>
+              <Text style={[styles.appTitleRest, { color: '#30a12a' }]}>
+                {word.slice(1)}
+              </Text>
+              {index < 2 && ' '}
+            </React.Fragment>
+          ))}
+        </Text>
         <Text style={[styles.subtitle, { color: colors.secondary }]}>
           Share your spiritual experiences
         </Text>
@@ -290,7 +309,7 @@ export default function SignUpScreen({ navigation }) {
       </View>
 
       <Text style={[styles.note, { color: colors.secondary }]}>
-        Note: OAuth authentication requires additional setup. Please configure Firebase OAuth providers.
+       This platform is for Sai Baba Devotees who want to share their spiritual experiences with the world.
       </Text>
     </View>
   );
@@ -307,14 +326,56 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 60,
   },
+  imageContainer: {
+    width: '60%',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  logoImage: {
+    width: '100%',
+    height: 150,
+  },
+  appTitleContainer: {
+    marginTop: 20,
+  },
   appTitle: {
     fontSize: 32,
     fontWeight: '700',
     marginTop: 20,
     fontFamily: 'System',
   },
+  appTitleFirstChar: {
+    fontSize: 36,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+    textShadowColor: 'rgba(13, 99, 50, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    transform: [{ scaleY: 1.1 }],
+  },
+  appTitleRest: {
+    fontSize: 28,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    opacity: 0.85,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   subtitle: {
-    fontSize: 16,
+    fontSize: 12,
     marginTop: 8,
     textAlign: 'center',
     fontFamily: 'System',

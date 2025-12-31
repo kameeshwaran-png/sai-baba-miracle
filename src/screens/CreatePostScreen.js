@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { useSelector } from 'react-redux';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase.config';
@@ -20,14 +21,26 @@ import { useTheme } from '../hooks/useTheme';
 const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'hi', name: 'हिंदी (Hindi)' },
+  { code: 'bn', name: 'বাংলা (Bengali)' },
   { code: 'ta', name: 'தமிழ் (Tamil)' },
   { code: 'te', name: 'తెలుగు (Telugu)' },
-  { code: 'kn', name: 'ಕನ್ನಡ (Kannada)' },
-  { code: 'ml', name: 'മലയാളം (Malayalam)' },
   { code: 'mr', name: 'मराठी (Marathi)' },
   { code: 'gu', name: 'ગુજરાતી (Gujarati)' },
-  { code: 'bn', name: 'বাংলা (Bengali)' },
+  { code: 'kn', name: 'ಕನ್ನಡ (Kannada)' },
+  { code: 'ml', name: 'മലയാളം (Malayalam)' },
   { code: 'pa', name: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { code: 'or', name: 'ଓଡ଼ିଆ (Odia)' },
+  { code: 'as', name: 'অসমীয়া (Assamese)' },
+  { code: 'ur', name: 'اردو (Urdu)' },
+  { code: 'ne', name: 'नेपाली (Nepali)' },
+  { code: 'si', name: 'සිංහල (Sinhala)' },
+  { code: 'sa', name: 'संस्कृतम् (Sanskrit)' },
+  { code: 'kok', name: 'कोंकणी (Konkani)' },
+  { code: 'mai', name: 'मैथिली (Maithili)' },
+  { code: 'mni', name: 'ꯃꯤꯇꯩꯂꯣꯟ (Manipuri)' },
+  { code: 'sd', name: 'سنڌي (Sindhi)' },
+  { code: 'ks', name: 'کٲشُر (Kashmiri)' },
+  { code: 'doi', name: 'डोगरी (Dogri)' },
 ];
 
 export default function CreatePostScreen({ navigation }) {
@@ -37,7 +50,6 @@ export default function CreatePostScreen({ navigation }) {
   const [content, setContent] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [language, setLanguage] = useState('en');
-  const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -94,8 +106,6 @@ export default function CreatePostScreen({ navigation }) {
     }
   };
 
-  const selectedLanguage = LANGUAGES.find((lang) => lang.code === language);
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
@@ -150,49 +160,22 @@ export default function CreatePostScreen({ navigation }) {
         {/* Language Picker */}
         <View style={styles.inputContainer}>
           <Text style={[styles.label, { color: colors.primary }]}>Select Language</Text>
-          <TouchableOpacity
-            style={[styles.languagePicker, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => setShowLanguagePicker(!showLanguagePicker)}
-          >
-            <Text style={[styles.languageText, { color: colors.primary }]}>
-              {selectedLanguage ? selectedLanguage.name : 'Select Language'}
-            </Text>
-            <Ionicons
-              name={showLanguagePicker ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={colors.secondary}
-            />
-          </TouchableOpacity>
-
-          {showLanguagePicker && (
-            <View style={[styles.languageOptions, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.languagePickerContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Picker
+              selectedValue={language}
+              onValueChange={setLanguage}
+              style={[styles.picker, { color: colors.primary }]}
+              dropdownIconColor={colors.primary}
+            >
               {LANGUAGES.map((lang) => (
-                <TouchableOpacity
+                <Picker.Item
                   key={lang.code}
-                  style={[
-                    styles.languageOption,
-                    language === lang.code && { backgroundColor: colors.accent + '20' },
-                  ]}
-                  onPress={() => {
-                    setLanguage(lang.code);
-                    setShowLanguagePicker(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.languageOptionText,
-                      { color: language === lang.code ? colors.accent : colors.primary },
-                    ]}
-                  >
-                    {lang.name}
-                  </Text>
-                  {language === lang.code && (
-                    <Ionicons name="checkmark" size={20} color={colors.accent} />
-                  )}
-                </TouchableOpacity>
+                  label={lang.name}
+                  value={lang.code}
+                />
               ))}
-            </View>
-          )}
+            </Picker>
+          </View>
         </View>
 
         {/* Submit Button */}
@@ -287,43 +270,14 @@ const styles = StyleSheet.create({
       default: 'sans-serif',
     }),
   },
-  languagePicker: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  languagePickerContainer: {
     borderWidth: 1,
     borderRadius: 12,
-    padding: 16,
-  },
-  languageText: {
-    fontSize: 16,
-    fontFamily: Platform.select({
-      ios: 'System',
-      android: 'Roboto',
-      default: 'sans-serif',
-    }),
-  },
-  languageOptions: {
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 1,
     overflow: 'hidden',
   },
-  languageOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  languageOptionText: {
-    fontSize: 16,
-    fontFamily: Platform.select({
-      ios: 'System',
-      android: 'Roboto',
-      default: 'sans-serif',
-    }),
+  picker: {
+    height: Platform.OS === 'ios' ? 200 : 50,
+    width: '100%',
   },
   submitButton: {
     flexDirection: 'row',

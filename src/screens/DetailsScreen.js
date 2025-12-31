@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { db } from '../../firebase.config';
 import { useTheme } from '../hooks/useTheme';
 
 export default function DetailsScreen({ route, navigation }) {
-  const { postId } = route.params;
+  const { postId, scrollToComments = false } = route.params || {};
   const { colors } = useTheme();
   const userId = useSelector((state) => state.auth.user?.uid);
   const user = useSelector((state) => state.auth.user);
@@ -32,10 +32,27 @@ export default function DetailsScreen({ route, navigation }) {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  const scrollViewRef = useRef(null);
+  const commentsSectionRef = useRef(null);
+
   useEffect(() => {
     loadPost();
     loadComments();
   }, [postId]);
+
+  // Scroll to comments section when scrollToComments flag is set
+  useEffect(() => {
+    if (scrollToComments && !loading && post && scrollViewRef.current) {
+      // Delay to ensure content is fully rendered and laid out
+      const timer = setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollToEnd({ animated: true });
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [scrollToComments, loading, post]);
 
   const loadPost = async () => {
     try {
@@ -193,6 +210,7 @@ export default function DetailsScreen({ route, navigation }) {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -208,7 +226,7 @@ export default function DetailsScreen({ route, navigation }) {
           </Text>
 
           {/* Comments Section */}
-          <View style={styles.commentsSection}>
+          <View ref={commentsSectionRef} style={styles.commentsSection}>
             <Text style={[styles.commentsTitle, { color: colors.primary }]}>
               {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
             </Text>
@@ -319,6 +337,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
+    marginTop: 20,
     marginBottom: 24,
     fontFamily: Platform.select({
       ios: 'System',

@@ -56,7 +56,7 @@ export default function SplashScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Image 
-        source={require('../../assets/splash.png')} 
+        source={require('../../assets/logo_gold.png')} 
         style={styles.splashImage}
         resizeMode="contain"
       />
