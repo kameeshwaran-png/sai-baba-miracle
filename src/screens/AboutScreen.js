@@ -11,10 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Info } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 
 export default function AboutScreen({ navigation }) {
   const { colors, mode } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -28,7 +30,7 @@ export default function AboutScreen({ navigation }) {
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.primary }]}>
-            About this App
+            {t('about.title')}
           </Text>
           <View style={styles.placeholder} />
         </View>
@@ -42,7 +44,7 @@ export default function AboutScreen({ navigation }) {
           {/* Sai Baba Image */}
           <View style={[styles.imageContainer, { backgroundColor: mode === 'dark' ? 'black' : colors.surface, borderColor: colors.border }]}>
             <Image
-              source={mode === 'dark' ? require('../../assets/logo_gold.png') : require('../../assets/logo_white.png')}
+              source={mode === 'dark' ? require('../../assets/logo_black.png') : require('../../assets/logo_white.png')}
               style={styles.saiBabaImage}
               resizeMode="contain"
             />
@@ -53,14 +55,14 @@ export default function AboutScreen({ navigation }) {
             <View style={styles.appInfoHeader}>
               <Info size={28} color={colors.accent} strokeWidth={2} />
               <Text style={[styles.appName, { color: colors.primary }]}>
-                Sai Baba Miracles
+                {t('about.appName')}
               </Text>
             </View>
             <Text style={[styles.version, { color: colors.secondary }]}>
-              Version 1.0.0
+              {t('about.version')} 1.0.0
             </Text>
             <Text style={[styles.tagline, { color: colors.primary }]}>
-              A Seva for Sai Devotees to share Miracles & Experiences.
+              {t('about.tagline')}
             </Text>
           </View>
 
@@ -69,40 +71,40 @@ export default function AboutScreen({ navigation }) {
             {/* Mission */}
             <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-                Mission
+                {t('about.mission.title')}
               </Text>
               <Text style={[styles.sectionText, { color: colors.primary }]}>
-                This app is a non-commercial, non-profit project dedicated to the global community of Sai Baba devotees. Our goal is to provide a platform to document and share the leelas (miracles) of Shri Sai.
+                {t('about.mission.content')}
               </Text>
             </View>
 
             {/* Credits */}
             <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-                Credits (Source Material)
+                {t('about.credits.title')}
               </Text>
               <Text style={[styles.sectionText, { color: colors.primary }]}>
-                The PDF versions of Shri Sai Satcharitra are sourced from the editions published by the Shree Sai Baba Sansthan Trust, Shirdi. We credit the original author, Govind Raghunath Dabholkar (Hemadpant).
+                {t('about.credits.content')}
               </Text>
             </View>
 
             {/* No-Ads Policy */}
             <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-                No-Ads Policy
+                {t('about.noAds.title')}
               </Text>
               <Text style={[styles.sectionText, { color: colors.primary }]}>
-                This app is completely free of charge and does not run any advertisements or generate any revenue. It is purely a devotional service.
+                {t('about.noAds.content')}
               </Text>
             </View>
 
             {/* Disclaimer */}
             <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-                Disclaimer
+                {t('about.disclaimer.title')}
               </Text>
               <Text style={[styles.sectionText, { color: colors.primary }]}>
-                All rights to the books remain with the original publishers. If you are a copyright holder and have concerns, please contact us.
+                {t('about.disclaimer.content')}
               </Text>
             </View>
           </View>

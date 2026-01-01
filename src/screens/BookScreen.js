@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import Pdf from 'react-native-pdf';
 import { useTheme } from '../hooks/useTheme';
 
@@ -19,6 +20,7 @@ const LANGUAGES = [
 
 export default function BookScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
@@ -70,7 +72,7 @@ export default function BookScreen() {
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.accent} />
               <Text style={[styles.loadingText, { color: colors.secondary }]}>
-                Loading PDF...
+                {t('book.loadingPdf')}
               </Text>
             </View>
           )}
@@ -79,10 +81,10 @@ export default function BookScreen() {
             <View style={styles.errorContainer}>
               <Ionicons name="document-outline" size={64} color={colors.error} />
               <Text style={[styles.errorText, { color: colors.error }]}>
-                Failed to load PDF
+                {t('book.loadError')}
               </Text>
               <Text style={[styles.errorSubtext, { color: colors.secondary }]}>
-                Please make sure the PDF file exists
+                {t('book.loadErrorSubtext')}
               </Text>
             </View>
           )}
@@ -90,6 +92,7 @@ export default function BookScreen() {
           {pdfSource && !pdfError && (
             <Pdf
               source={pdfSource}
+              trustAllCerts={false}
               onLoadComplete={(numberOfPages) => {
                 setPdfLoading(false);
                 setPdfError(false);
@@ -123,7 +126,7 @@ export default function BookScreen() {
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Text style={[styles.headerTitle, { color: colors.primary }]}>
-            Sri Sai Satcharitra
+            {t('book.title')}
           </Text>
         </View>
 
@@ -157,7 +160,7 @@ export default function BookScreen() {
           {/* Disclaimer Footer */}
           <View style={styles.disclaimerFooter}>
             <Text style={styles.disclaimerText}>
-              PDFs are provided for devotional study. Credits: Shree Sai Baba Sansthan Trust, Shirdi. See 'Settings {'>'} About' for full legal disclaimer.
+              {t('book.disclaimer')}
             </Text>
           </View>
         </ScrollView>
@@ -194,7 +197,6 @@ const styles = StyleSheet.create({
     width: 32,
   },
   headerTitle: {
-    paddingTop: 30,
     fontSize: 20,
     fontWeight: '700',
     fontFamily: Platform.select({

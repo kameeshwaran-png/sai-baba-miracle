@@ -20,6 +20,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import BookScreen from '../screens/BookScreen';
 import AboutScreen from '../screens/AboutScreen';
+import FeedbackScreen from '../screens/FeedbackScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -119,6 +120,13 @@ function SettingsStack() {
       <Stack.Screen
         name="About"
         component={AboutScreen}
+        options={({ navigation }) => ({
+          headerShown: false,
+        })}
+      />
+      <Stack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
         options={({ navigation }) => ({
           headerShown: false,
         })}
@@ -290,6 +298,9 @@ export default function AppNavigator() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const isLoading = useSelector((state) => state.auth.isLoading);
   const navigationRef = useNavigationContainerRef();
+  
+  // Don't render navigation until auth state is determined
+  // This prevents flickering between auth and authenticated screens
 
   // Deep linking configuration
   const linking = {

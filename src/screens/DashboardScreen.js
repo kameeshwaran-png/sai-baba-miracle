@@ -22,7 +22,7 @@ import FeedCard from '../components/FeedCard';
 const POSTS_PER_PAGE = 15;
 
 export default function DashboardScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const user = useSelector((state) => state.auth.user);
   const preferredLanguage = useSelector((state) => state.theme.language) || 'en';
   const [posts, setPosts] = useState([]);
@@ -225,43 +225,42 @@ export default function DashboardScreen({ navigation }) {
     navigation.navigate('CreatePost');
   };
 
-  const renderHeader = () => (
-    <View style={[styles.header, { backgroundColor: colors.surface }]}>
-      <View style={styles.headerContent}>
-        <View style={styles.headerLeft}>
-          {user?.photoURL ? (
-            <Image
-              source={{ uri: user.photoURL }}
-              style={styles.headerProfileImage}
-            />
-          ) : (
-            <View style={[styles.headerProfileImagePlaceholder, { backgroundColor: colors.accent + '20' }]}>
-              <Ionicons name="person" size={20} color={colors.accent} />
+  const renderHeader = () => {
+    const successColor = mode === 'dark' ? '#32D74B' : '#34C759';
+    
+    return (
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            {user?.photoURL ? (
+              <Image
+                source={{ uri: user.photoURL }}
+                style={styles.headerProfileImage}
+              />
+            ) : (
+              <View style={[styles.headerProfileImagePlaceholder, { backgroundColor: colors.accent + '20' }]}>
+                <Ionicons name="person" size={20} color={colors.accent} />
+              </View>
+            )}
+            <View style={styles.headerTitleWrapper}>
+              <Text style={[styles.headerTitleMain, { color: colors.primary }]}>
+                Sai Baba
+              </Text>
+              <Text style={[styles.headerTitleSubtitle, { color: colors.secondary }]}>
+                Miracles
+              </Text>
             </View>
-          )}
-          <Text style={styles.headerTitleContainer}>
-            {['Sai', 'Baba', 'Miracle'].map((word, index) => (
-              <React.Fragment key={index}>
-                <Text style={[styles.headerTitleFirstChar, { color: '#0d6332' }]}>
-                  {word[0]}
-                </Text>
-                <Text style={[styles.headerTitleRest, { color: colors.primary }]}>
-                  {word.slice(1)}
-                </Text>
-                {index < 2 && ' '}
-              </React.Fragment>
-            ))}
-          </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={handleCreatePost}
+          >
+            <Ionicons name="create-outline" size={24} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={handleCreatePost}
-        >
-          <Ionicons name="create-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderPost = ({ item }) => (
     <FeedCard
@@ -367,46 +366,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitleContainer: {
-    // Text components handle inline layout automatically
+  headerTitleWrapper: {
+    flexShrink: 1,
   },
-  headerTitle: {
-    fontSize: 20,
+  headerTitleMain: {
+    fontSize: 22,
     fontWeight: '700',
-    opacity: 0.7,
-    fontFamily: Platform.select({
-      ios: 'System',
-      android: 'Roboto',
-      default: 'sans-serif',
-    }),
-  },
-  headerTitleFirstChar: {
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: 1,
-    fontFamily: Platform.select({
-      ios: 'System',
-      android: 'Roboto',
-      default: 'sans-serif',
-    }),
-    textShadowColor: 'rgba(13, 99, 50, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    transform: [{ scaleY: 1.1 }],
-  },
-  headerTitleRest: {
-    fontSize: 20,
-    fontWeight: '600',
     letterSpacing: 0.5,
-    opacity: 0.85,
+    lineHeight: 26,
     fontFamily: Platform.select({
       ios: 'System',
       android: 'Roboto',
       default: 'sans-serif',
     }),
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  },
+  headerTitleSubtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    opacity: 0.7,
+    marginTop: 1,
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+      default: 'sans-serif',
+    }),
   },
   createButton: {
     width: 44,

@@ -25,6 +25,7 @@ import { auth, db } from '../../firebase.config';
 import { logout } from '../store/slices/authSlice';
 import { toggleTheme, setLanguage } from '../store/slices/themeSlice';
 import { useTheme } from '../hooks/useTheme';
+import { useAdmin } from '../hooks/useAdmin';
 
 const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -55,6 +56,7 @@ export default function SettingsScreen({ navigation }) {
   const dispatch = useDispatch();
   const { colors, mode } = useTheme();
   const user = useSelector((state) => state.auth.user);
+  const { isAdmin } = useAdmin();
   const { t, i18n } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -116,7 +118,7 @@ export default function SettingsScreen({ navigation }) {
     }
 
     if (!user?.uid) {
-      Alert.alert(t('common.error'), 'Please login to submit feedback');
+      Alert.alert(t('common.error'), t('feedback.loginRequired'));
       return;
     }
 
@@ -240,11 +242,28 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.settingLeft}>
               <Ionicons name="chatbubble-outline" size={22} color={colors.primary} />
               <Text style={[styles.settingLabel, { color: colors.primary }]}>
-                Contact/Feedback
+                {t('settings.contactFeedback')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.secondary} />
           </TouchableOpacity>
+
+          {/* Feedbacks List (Admin Only) */}
+          {isAdmin && (
+            <TouchableOpacity
+              style={[styles.settingRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => navigation.navigate('Feedback')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="list-outline" size={22} color={colors.primary} />
+                <Text style={[styles.settingLabel, { color: colors.primary }]}>
+                  Feedbacks List
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.secondary} />
+            </TouchableOpacity>
+          )}
 
           {/* About this App Option */}
           <TouchableOpacity
@@ -255,7 +274,7 @@ export default function SettingsScreen({ navigation }) {
             <View style={styles.settingLeft}>
               <Ionicons name="information-circle-outline" size={22} color={colors.primary} />
               <Text style={[styles.settingLabel, { color: colors.primary }]}>
-                About this App
+                {t('settings.aboutApp')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.secondary} />

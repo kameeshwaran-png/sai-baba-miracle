@@ -15,13 +15,14 @@ import { useSelector } from 'react-redux';
 import { doc, updateDoc, increment, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import { useTheme } from '../hooks/useTheme';
+import { useAdmin } from '../hooks/useAdmin';
 
 const { width } = Dimensions.get('window');
 const PREVIEW_HEIGHT = Dimensions.get('window').height * 0.3;
 
 export default function FeedCard({ post, onPress, navigation }) {
   const { colors } = useTheme();
-  const userRole = useSelector((state) => state.auth.userRole);
+  const { isAdmin } = useAdmin();
   const userId = useSelector((state) => state.auth.user?.uid);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);
@@ -129,7 +130,7 @@ export default function FeedCard({ post, onPress, navigation }) {
       activeOpacity={0.7}
     >
       {/* Admin Actions */}
-      {userRole === 'admin' && (
+      {isAdmin && (
         <View style={styles.adminActions}>
           <TouchableOpacity
             style={[styles.deleteButton, { backgroundColor: colors.error }]}

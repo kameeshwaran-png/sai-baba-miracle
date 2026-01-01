@@ -14,7 +14,9 @@
     "signOut": "साइन आउट",
     "logout": "लॉगआउट",
     "logoutConfirm": "क्या आप वास्तव में लॉगआउट करना चाहते हैं?",
-    "cancel": "रद्द करें"
+    "cancel": "रद्द करें",
+    "contactFeedback": "Contact/Feedback",
+    "aboutApp": "About this App"
   },
   "feedback": {
     "title": "प्रतिक्रिया भेजें",
@@ -22,12 +24,41 @@
     "submit": "सबमिट करें",
     "submitting": "सबमिट हो रहा है...",
     "success": "आपकी प्रतिक्रिया के लिए धन्यवाद!",
-    "error": "प्रतिक्रिया सबमिट करने में विफल। कृपया पुनः प्रयास करें।"
+    "error": "प्रतिक्रिया सबमिट करने में विफल। कृपया पुनः प्रयास करें।",
+    "loginRequired": "Please login to submit feedback"
   },
   "common": {
     "loading": "लोड हो रहा है...",
     "error": "त्रुटि",
     "success": "सफलता"
+  },
+  "about": {
+    "title": "About this App",
+    "appName": "Sai Baba Miracles",
+    "version": "Version",
+    "tagline": "A Seva for Sai Devotees to share Miracles & Experiences.",
+    "mission": {
+      "title": "Mission",
+      "content": "This app is a non-commercial, non-profit project dedicated to the global community of Sai Baba devotees. Our goal is to provide a platform to document and share the leelas (miracles) of Shri Sai."
+    },
+    "credits": {
+      "title": "Credits (Source Material)",
+      "content": "The PDF versions of Shri Sai Satcharitra are sourced from the editions published by the Shree Sai Baba Sansthan Trust, Shirdi. We credit the original author, Govind Raghunath Dabholkar (Hemadpant)."
+    },
+    "noAds": {
+      "title": "No-Ads Policy",
+      "content": "This app is completely free of charge and does not run any advertisements or generate any revenue. It is purely a devotional service."
+    },
+    "disclaimer": {
+      "title": "Disclaimer",
+      "content": "All rights to the books remain with the original publishers. If you are a copyright holder and have concerns, please contact us."
+    }
+  },
+  "book": {
+    "title": "Sri Sai Satcharitra",
+    "loadingPdf": "Loading PDF...",
+    "loadError": "Failed to load PDF",
+    "loadErrorSubtext": "Please make sure the PDF file exists",
+    "disclaimer": "PDFs are provided for devotional study. Credits: Shree Sai Baba Sansthan Trust, Shirdi. See 'Settings > About' for full legal disclaimer."
   }
 }
-

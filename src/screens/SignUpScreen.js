@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   signInWithCredential,
   GoogleAuthProvider,
-  FacebookAuthProvider,
   OAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -55,7 +54,7 @@ export default function SignUpScreen({ navigation }) {
   // Helper function to handle authentication response
   const handleAuthResponse = async (authResponse) => {
     try {
-     // For native Android, the token is often in authentication.idToken
+      // For native Android, the token is often in authentication.idToken
       // whereas in proxy mode it's in params.id_token
       const idToken = authResponse.authentication?.idToken || authResponse.params?.id_token;
 
@@ -138,27 +137,6 @@ export default function SignUpScreen({ navigation }) {
     }
   };
 
-  const handleFacebookLogin = async () => {
-    try {
-      setLoading(true);
-      setLoadingProvider('facebook');
-
-      // Similar to Google - needs proper OAuth implementation
-      Alert.alert(
-        'OAuth Setup Required',
-        'Please configure Facebook OAuth in Firebase Console and implement the full OAuth flow using expo-auth-session. See README for details.',
-        [{ text: 'OK' }]
-      );
-
-    } catch (error) {
-      console.error('Facebook login error:', error);
-      Alert.alert('Login Error', error.message || 'Failed to sign in with Facebook.');
-    } finally {
-      setLoading(false);
-      setLoadingProvider(null);
-    }
-  };
-
   const handleAppleLogin = async () => {
     if (Platform.OS !== 'ios') {
       Alert.alert('Not Available', 'Apple Sign In is only available on iOS.');
@@ -170,7 +148,7 @@ export default function SignUpScreen({ navigation }) {
       setLoadingProvider('apple');
 
       // For Apple Sign In on iOS, you can use expo-apple-authentication
-      // or implement OAuth flow similar to Google/Facebook
+      // or implement OAuth flow similar to Google
       Alert.alert(
         'OAuth Setup Required',
         'Please configure Apple OAuth in Firebase Console. For iOS, consider using expo-apple-authentication package.',
@@ -224,29 +202,16 @@ export default function SignUpScreen({ navigation }) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       {/* Logo */}
       <View style={styles.logoContainer}>
         <View style={[styles.imageContainer, { backgroundColor: mode === 'dark' ? 'black' : colors.surface, borderColor: colors.border }]}>
           <Image
-            source={mode === 'dark' ? require('../../assets/logo_gold.png') : require('../../assets/logo_white.png')}
+            source={mode === 'dark' ? require('../../assets/logo_black.png') : require('../../assets/logo_white.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.appTitleContainer}>
-          {['Sai', 'Baba', 'Miracles'].map((word, index) => (
-            <React.Fragment key={index}>
-              <Text style={[styles.appTitleFirstChar, { color: '#25b51d' }]}>
-                {word[0]}
-              </Text>
-              <Text style={[styles.appTitleRest, { color: '#30a12a' }]}>
-                {word.slice(1)}
-              </Text>
-              {index < 2 && ' '}
-            </React.Fragment>
-          ))}
-        </Text>
         <Text style={[styles.subtitle, { color: colors.secondary }]}>
           Share your spiritual experiences
         </Text>
@@ -266,23 +231,6 @@ export default function SignUpScreen({ navigation }) {
               <Ionicons name="logo-google" size={24} color="#4285F4" />
               <Text style={[styles.socialButtonText, { color: colors.primary }]}>
                 Continue with Google
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.socialButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={handleFacebookLogin}
-          disabled={loading}
-        >
-          {loadingProvider === 'facebook' ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <>
-              <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-              <Text style={[styles.socialButtonText, { color: colors.primary }]}>
-                Continue with Facebook
               </Text>
             </>
           )}
@@ -309,7 +257,7 @@ export default function SignUpScreen({ navigation }) {
       </View>
 
       <Text style={[styles.note, { color: colors.secondary }]}>
-       This platform is for Sai Baba Devotees who want to share their spiritual experiences with the world.
+        This platform is for Sai Baba Devotees who want to share their spiritual experiences with the world.
       </Text>
     </View>
   );
