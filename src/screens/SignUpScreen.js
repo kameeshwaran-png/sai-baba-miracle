@@ -14,23 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   signInWithCredential,
   GoogleAuthProvider,
-  OAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { auth, db } from '../../firebase.config';
 import { setUser } from '../store/slices/authSlice';
 import { useTheme } from '../hooks/useTheme';
-
-// Complete web browser session for OAuth
-WebBrowser.maybeCompleteAuthSession();
-
-// Google OAuth Client IDs
-const GOOGLE_CLIENT_ID = '646552958318-4575892dr8trf7i56tdq7do6fggt3637.apps.googleusercontent.com';
-const IOS_CLIENT_ID = '646552958318-aukbcpnkl451p7vfcfc8g4p85e5f2l3j.apps.googleusercontent.com';
-const ANDROID_CLIENT_ID = '646552958318-5bp7ur8ptjom7vc3mdoq5mc396t20g73.apps.googleusercontent.com';
+import { GOOGLE_WEB_CLIENT_ID } from '../config/googleSignin.config';
 
 export default function SignUpScreen({ navigation }) {
   const dispatch = useDispatch();
@@ -38,33 +28,32 @@ export default function SignUpScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [loadingProvider, setLoadingProvider] = useState(null);
 
-  // Setup Google OAuth request using Google provider hook
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: ANDROID_CLIENT_ID,
-    webClientId: GOOGLE_CLIENT_ID,
-    iosClientId: IOS_CLIENT_ID,
-    // MUST ADD THESE TWO LINES:
-    useProxy: false,
-    redirectUri: AuthSession.makeRedirectUri({
-      scheme: 'com.saibabamiracles.app',
-      preferLocalhost: false,
-    }),
-  });
-
-  // Helper function to handle authentication response
-  const handleAuthResponse = async (authResponse) => {
+  const handleGoogleLogin = async () => {
     try {
-      // For native Android, the token is often in authentication.idToken
-      // whereas in proxy mode it's in params.id_token
-      const idToken = authResponse.authentication?.idToken || authResponse.params?.id_token;
+      setLoading(true);
+      setLoadingProvider('google');
+
+      // Check if your device supports Google Play (Android only)
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+
+      // Get user info from Google Sign-In
+      await GoogleSignin.signIn();
+
+      // Get the ID token after sign-in
+      const tokens = await GoogleSignin.getTokens();
+      const idToken = tokens.idToken;
 
       if (!idToken) {
-        console.error('Full Auth Response:', authResponse); // Log to see what was returned
         throw new Error('No ID token received from Google');
       }
 
-      const credential = GoogleAuthProvider.credential(idToken);
-      const userCredential = await signInWithCredential(auth, credential);
+      // Create a Google credential with the token
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+
+      // Sign in the user with the credential
+      const userCredential = await signInWithCredential(auth, googleCredential);
       const user = userCredential.user;
 
       console.log('Firebase sign-in successful, user:', user.email);
@@ -72,66 +61,27 @@ export default function SignUpScreen({ navigation }) {
       // Handle user data (create/update user document)
       await handleUserData(user);
     } catch (error) {
-      console.error('Error processing auth response:', error);
-      Alert.alert(
-        'Login Error',
-        error.message || 'Failed to sign in with Google. Please try again.'
-      );
-      setLoading(false);
-      setLoadingProvider(null);
-    }
-  };
-
-  // Handle OAuth response
-  useEffect(() => {
-    if (response?.type === 'success') {
-      handleAuthResponse(response);
-    } else if (response?.type === 'error') {
-      console.error('OAuth error:', response.error);
-      setLoading(false);
-      setLoadingProvider(null);
-      Alert.alert(
-        'Login Error',
-        response.error?.message || 'Authentication failed. Please try again.'
-      );
-    } else if (response?.type === 'cancel') {
-      console.log('User cancelled Google sign-in');
-      setLoading(false);
-      setLoadingProvider(null);
-    }
-  }, [response]);
-
-  const handleGoogleLogin = async () => {
-    try {
-      if (GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
-        Alert.alert(
-          'Configuration Required',
-          'Please set your Google OAuth Client ID in SignUpScreen.js. See GOOGLE_OAUTH_SETUP.md for instructions.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
-      if (!request || !promptAsync) {
-        Alert.alert(
-          'Initialization Error',
-          'OAuth request is not ready. Please try again.'
-        );
-        return;
-      }
-
-      setLoading(true);
-      setLoadingProvider('google');
-
-      console.log('Starting OAuth flow...');
-      await promptAsync();
-      // The response will be handled in the useEffect hook above
-    } catch (error) {
       console.error('Google login error:', error);
-      Alert.alert(
-        'Login Error',
-        error.message || 'Failed to start Google sign-in. Please try again.'
-      );
+
+      // Handle specific error cases
+      if (error.code === 'sign_in_cancelled') {
+        // User cancelled the login flow
+        console.log('User cancelled Google sign-in');
+      } else if (error.code === 'in_progress') {
+        // Sign in is already in progress
+        console.log('Sign in already in progress');
+      } else if (error.code === 'play_services_not_available') {
+        Alert.alert(
+          'Error',
+          'Google Play Services is not available. Please update Google Play Services.'
+        );
+      } else {
+        Alert.alert(
+          'Login Error',
+          error.message || 'Failed to sign in with Google. Please try again.'
+        );
+      }
+    } finally {
       setLoading(false);
       setLoadingProvider(null);
     }
