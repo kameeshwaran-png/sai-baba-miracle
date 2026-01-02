@@ -18,11 +18,14 @@ import AuthInitializer from './src/components/AuthInitializer';
 import { GOOGLE_WEB_CLIENT_ID } from './src/config/googleSignin.config';
 
 // Configure Google Sign-In at app level
+// Note: For Android, the client ID is auto-detected from google-services.json
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID, // Required for getting idToken on iOS and Android
   offlineAccess: true, // if you want to access Google API on behalf of the user FROM YOUR SERVER
-  forceCodeForRefreshToken: true, // [Android] related to `serverAuthCode`, read the docs link below *.
-  iosClientId: Platform.OS === 'ios' ? '646552958318-aukbcpnkl451p7vfcfc8g4p85e5f2l3j.apps.googleusercontent.com' : undefined,
+  forceCodeForRefreshToken: true, // [Android] related to `serverAuthCode`
+  ...(Platform.OS === 'ios' && {
+    iosClientId: '646552958318-aukbcpnkl451p7vfcfc8g4p85e5f2l3j.apps.googleusercontent.com',
+  }),
 });
 
 export default function App() {

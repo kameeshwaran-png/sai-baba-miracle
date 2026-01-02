@@ -62,23 +62,37 @@ export default function SignUpScreen({ navigation }) {
       await handleUserData(user);
     } catch (error) {
       console.error('Google login error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
 
       // Handle specific error cases
-      if (error.code === 'sign_in_cancelled') {
+      if (error.code === 'sign_in_cancelled' || error.code === '10') {
         // User cancelled the login flow
         console.log('User cancelled Google sign-in');
-      } else if (error.code === 'in_progress') {
+        // Don't show error for user cancellation
+        return;
+      } else if (error.code === 'in_progress' || error.code === '7') {
         // Sign in is already in progress
         console.log('Sign in already in progress');
-      } else if (error.code === 'play_services_not_available') {
+        Alert.alert('Sign In', 'Sign in is already in progress. Please wait.');
+      } else if (error.code === 'play_services_not_available' || error.code === '2') {
         Alert.alert(
           'Error',
-          'Google Play Services is not available. Please update Google Play Services.'
+          'Google Play Services is not available. Please update Google Play Services from the Play Store.'
+        );
+      } else if (error.code === '12500' || error.message?.includes('non-recoverable sign in failure')) {
+        // Common error: SHA-1 fingerprint not configured
+        Alert.alert(
+          'Configuration Error',
+          'Google Sign-In is not properly configured. Please ensure:\n\n' +
+          '1. SHA-1 fingerprint is added to Firebase Console\n' +
+          '2. google-services.json is up to date\n' +
+          '3. Package name matches in Firebase Console\n\n' +
+          'Check GOOGLE_SIGNIN_SETUP.md for details.'
         );
       } else {
         Alert.alert(
           'Login Error',
-          error.message || 'Failed to sign in with Google. Please try again.'
+          error.message || `Failed to sign in with Google. Error code: ${error.code || 'unknown'}`
         );
       }
     } finally {
